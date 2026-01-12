@@ -29,12 +29,37 @@
             margin: 1.5em 0;
             border-radius: 4px;
         }
-        .image-caption {
+        pre {
+            background: #f6f8fa;
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        code {
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 0.9em;
+        }
+        .diagram {
+            background: #f9f9f9;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 1.5em 0;
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            white-space: pre;
+            overflow-x: auto;
+        }
+        .diagram-caption {
             font-size: 0.85em;
-            color: #888;
+            color: #666;
             text-align: center;
             margin-top: -1em;
-            margin-bottom: 2em;
+            margin-bottom: 1.5em;
         }
     </style>
 </head>
@@ -48,175 +73,206 @@
 
 <hr>
 
-<p>If you've been paying attention to the AI engineering space lately, you've probably noticed that "multi-agent" has become the default answer to almost every complex problem. Need to build a research assistant? Spin up a crew of agents. Want to automate a workflow? Deploy an agent swarm. Building something ambitious? Obviously, you need an orchestrator coordinating a team of specialized agents.</p>
+<p>"Multi-agent" has become the default answer to every complex AI problem. Research assistant? Spin up a crew. Workflow automation? Deploy an agent swarm.</p>
 
-<p>The multi-agent pattern has become so prevalent that reaching for it feels like the "serious" architectural choice. Single agents? That's for toy projects and demos.</p>
-
-<p>But what if this complexity is often unnecessary? What if, for many use cases, we're paying a steep tax in tokens, latency, and debugging headaches—without getting proportional value in return?</p>
-
-<p>A recent research paper challenges the multi-agent orthodoxy, and its findings deserve attention from anyone building agent-based systems.</p>
+<p>But what if this complexity is unnecessary? A recent paper by Xiaoxiao Li, "When Single-Agent with Skills Replace Multi-Agent Systems and When They Fail," suggests it often is.</p>
 
 <hr>
 
-<h2>The Research: Single Agent with Skills vs. Multi-Agent Systems</h2>
+<h2>The Core Insight: Skills as Internalized Agents</h2>
 
-<p>The paper "When Single-Agent with Skills Replace Multi-Agent Systems and When They Fail" by Xiaoxiao Li investigates a deceptively simple question: Can a single agent with a curated library of skills replicate the benefits of multi-agent systems?</p>
+<p>Instead of this:</p>
 
-<p>The answer, according to the research, is often yes—and more efficiently.</p>
+<div class="diagram">
+┌─────────────────────────────────────────────────────────┐
+│                    MULTI-AGENT SYSTEM                   │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│   ┌──────────┐    ┌──────────┐    ┌──────────┐         │
+│   │ Research │───▶│ Writing  │───▶│ Review   │         │
+│   │  Agent   │    │  Agent   │    │  Agent   │         │
+│   └──────────┘    └──────────┘    └──────────┘         │
+│        │              │               │                 │
+│        ▼              ▼               ▼                 │
+│   [Context A]    [Context B]    [Context C]            │
+│                                                         │
+│   • 3 separate contexts (token duplication)            │
+│   • Coordination overhead                               │
+│   • Complex failure modes                               │
+└─────────────────────────────────────────────────────────┘
+</div>
 
-<h3>The Core Finding</h3>
+<p>The research proposes this:</p>
 
-<p>The researchers demonstrated that a single agent selecting from a skill library can substantially reduce token usage and latency while maintaining competitive accuracy on reasoning benchmarks. Instead of multiple agents passing messages, maintaining separate contexts, and coordinating handoffs, one agent simply picks the right skill for the task.</p>
+<div class="diagram">
+┌─────────────────────────────────────────────────────────┐
+│               SINGLE-AGENT WITH SKILLS                  │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│                   ┌──────────────┐                      │
+│                   │    Agent     │                      │
+│                   │              │                      │
+│                   │  ┌────────┐  │                      │
+│                   │  │ Skills │  │                      │
+│                   │  ├────────┤  │                      │
+│                   │  │research│  │                      │
+│                   │  │ write  │  │                      │
+│                   │  │ review │  │                      │
+│                   │  └────────┘  │                      │
+│                   └──────────────┘                      │
+│                         │                               │
+│                         ▼                               │
+│                  [Single Context]                       │
+│                                                         │
+│   • One unified context                                 │
+│   • Direct skill invocation                             │
+│   • Simple debugging                                    │
+└─────────────────────────────────────────────────────────┘
+</div>
+<p class="diagram-caption">Skills become internalized agent behaviors within a single context</p>
 
-<p>The key insight here is viewing skills as "internalized agent behaviors." Rather than spinning up a separate "research agent" and "writing agent" and "review agent," you teach one agent how to research, how to write, and how to review. The behaviors that would be distributed across multiple agents become skills within a single, unified context.</p>
-
-<p>This isn't just a theoretical efficiency gain. In practice, multi-agent systems pay real costs:</p>
-
-<ul>
-    <li><strong>Token overhead</strong>: Each agent maintains its own context, often duplicating information</li>
-    <li><strong>Latency</strong>: Coordination and handoffs between agents take time</li>
-    <li><strong>Complexity</strong>: Debugging distributed agent failures is notoriously difficult</li>
-    <li><strong>Unpredictability</strong>: Inter-agent communication introduces new failure modes</li>
-</ul>
-
-<p>A single agent with skills sidesteps most of these issues while preserving the capability to handle diverse tasks.</p>
+<p>The result: substantially reduced token usage and latency while maintaining competitive accuracy.</p>
 
 <hr>
 
-<h2>The Phase Transition Problem: When It Breaks Down</h2>
+<h2>The Phase Transition Problem</h2>
 
 <img src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=1400&q=80" alt="Neural network concept visualization" class="article-image">
 
-<p>Here's where the research gets really interesting—and provides crucial guidance for practitioners.</p>
+<p>Single-agent works beautifully... until it suddenly doesn't.</p>
 
-<p>The single-agent approach works beautifully... until it suddenly doesn't.</p>
+<p>The research found a <strong>phase transition</strong>: skill selection accuracy stays stable up to a critical library size, then drops sharply. No gradual degradation—just a cliff.</p>
 
-<h3>The Cliff, Not the Slope</h3>
+<div class="diagram">
+Skill Selection Accuracy vs. Library Size
 
-<p>You might expect that as you add more skills to an agent's library, performance would gradually degrade. A gentle slope downward as the agent gets slightly worse at picking the right skill from an increasingly crowded menu.</p>
+100% │ ●●●●●●●●●●●●●●●●●●●
+     │                     ●
+     │                      ●
+ 50% │                       ●
+     │                        ●●●●●●●●●
+     │
+  0% └────────────────────────────────────
+         5    10    15    20    25    30
+              Number of Skills
 
-<p>That's not what happens.</p>
-
-<p>Instead, the research found a "phase transition"—skill selection accuracy remains stable up to a critical library size, then drops sharply. One moment the agent is reliably choosing appropriate skills; the next, it's confused and making poor selections. There's no graceful degradation, just a cliff.</p>
-
-<p>This pattern mirrors something fascinating from cognitive science: the bounded capacity of human decision-making. Psychologists have long observed that humans can effectively juggle about seven (plus or minus two) distinct options before decision quality deteriorates. We don't get gradually worse at choosing between 10, 15, 20 options—we hit a wall where choice overload kicks in.</p>
-
-<p>LLMs, it turns out, exhibit similar bounded capacity when selecting skills.</p>
+     [Stable Zone]    │  [Breakdown]
+</div>
+<p class="diagram-caption">Performance remains stable until hitting a critical threshold</p>
 
 <h3>The Real Culprit: Semantic Similarity</h3>
 
-<p>But here's the crucial nuance: the phase transition isn't purely about library size. The research identifies semantic similarity among skills as the primary driver of breakdown.</p>
+<p>The breakdown isn't purely about library size—it's about <strong>semantic similarity</strong>.</p>
 
-<p>If your skill library contains "write_technical_doc," "write_documentation," "create_technical_content," and "author_doc_page"—congratulations, you've set a trap for your agent. These skills sound similar enough that the agent will struggle to distinguish between them, even in a relatively small library.</p>
+<pre><code># This skill library will fail early:
+skills = [
+    "write_technical_doc",
+    "write_documentation",
+    "create_technical_content",
+    "author_doc_page"
+]
+# Too similar → agent confusion
 
-<p>Conversely, a library with clearly distinct skills—"write_code," "run_tests," "search_web," "analyze_data"—can remain effective at larger sizes because the semantic distance between options is greater.</p>
+# This library can scale further:
+skills = [
+    "write_code",
+    "run_tests",
+    "search_web",
+    "analyze_data"
+]
+# Semantically distinct → clear selection</code></pre>
 
-<p>This finding has immediate practical implications: skill hygiene matters as much as skill count.</p>
-
-<hr>
-
-<h2>Practical Implications: What This Means for You</h2>
-
-<p>So how should this research inform the way you build agent systems? Here are the key takeaways.</p>
-
-<h3>Default to Single-Agent First</h3>
-
-<p>Before reaching for a multi-agent architecture, ask yourself: "Could one agent with the right skills handle this?" The research suggests that for many use cases, the answer is yes—with better efficiency.</p>
-
-<p>Multi-agent systems should be a deliberate choice made after determining that single-agent won't work, not the default starting point for "serious" projects.</p>
-
-<h3>Curate Skills with Distinct Purposes</h3>
-
-<p>If you're building a skill library, prioritize clarity and distinctiveness over comprehensiveness. Each skill should have a clearly differentiated purpose that an LLM can unambiguously identify.</p>
-
-<p>Consider these questions when adding a new skill:</p>
-<ul>
-    <li>Does this overlap semantically with existing skills?</li>
-    <li>Could the agent reasonably confuse this with another skill?</li>
-    <li>Is the skill name and description distinct enough to stand out?</li>
-</ul>
-
-<p>Fewer, clearer skills will outperform a bloated library of overlapping capabilities.</p>
-
-<h3>Watch for the Warning Signs</h3>
-
-<p>As your skill library grows, monitor for signs that you're approaching the phase transition:</p>
-<ul>
-    <li>The agent starts picking "close but wrong" skills</li>
-    <li>You find yourself adding elaborate prompting to help skill selection</li>
-    <li>Accuracy on skill-dependent tasks begins to drop</li>
-</ul>
-
-<p>These are signals that you've hit—or are approaching—the capacity limit.</p>
-
-<h3>Consider Hierarchical Organization</h3>
-
-<p>The paper presents preliminary evidence that hierarchical routing can mitigate capacity limitations. Instead of presenting 50 skills to the agent at once, organize them into categories: "writing skills," "analysis skills," "code skills." The agent first selects a category, then selects a skill within that category.</p>
-
-<p>This mirrors how humans manage complex choice environments—we chunk and categorize to reduce cognitive load.</p>
-
-<h3>Know When Multi-Agent Still Makes Sense</h3>
-
-<p>None of this means multi-agent systems are never appropriate. They remain valuable for:</p>
-
-<ul>
-    <li><strong>Truly parallel workloads</strong>: When tasks genuinely can and should execute simultaneously</li>
-    <li><strong>Specialized domain separation</strong>: When different tasks require fundamentally different models or capabilities</li>
-    <li><strong>Isolation requirements</strong>: When you need hard boundaries between different parts of a workflow</li>
-    <li><strong>Human-in-the-loop patterns</strong>: When different agents need different levels of human oversight</li>
-</ul>
-
-<p>The point isn't that multi-agent is bad—it's that it should be a conscious architectural decision, not a reflexive default.</p>
+<p>Skill hygiene matters as much as skill count.</p>
 
 <hr>
 
-<h2>Why I'm Bullish on Single-Agent Architectures</h2>
+<h2>Practical Implications</h2>
 
-<p>Let me be direct about my perspective: I believe the industry has over-indexed on multi-agent systems, and this research reinforces that view.</p>
+<h3>1. Default to Single-Agent First</h3>
 
-<h3>Complexity Without Proportional Value</h3>
+<pre><code># Before:
+def solve_problem(task):
+    research_agent = Agent("researcher")
+    writing_agent = Agent("writer")
+    review_agent = Agent("reviewer")
+    return orchestrate([research_agent, writing_agent, review_agent], task)
 
-<p>Much of the multi-agent enthusiasm has been driven by impressive demos rather than production success stories. It's easy to show a swarm of agents collaborating on a task in a controlled demo. It's much harder to debug that swarm when it fails unpredictably in production.</p>
+# After:
+def solve_problem(task):
+    agent = Agent(skills=["research", "write", "review"])
+    return agent.execute(task)</code></pre>
 
-<p>The reality is that multi-agent coordination introduces significant complexity:</p>
+<h3>2. Watch for Warning Signs</h3>
+
 <ul>
-    <li>State synchronization between agents</li>
-    <li>Message passing and context management</li>
-    <li>Failure handling when one agent in a chain breaks</li>
-    <li>Observability across distributed agent contexts</li>
+    <li>Agent picking "close but wrong" skills</li>
+    <li>Adding elaborate prompts to help skill selection</li>
+    <li>Accuracy dropping on skill-dependent tasks</li>
 </ul>
 
-<p>For many use cases, this complexity isn't buying you proportionally better outcomes. You're paying an architectural tax without collecting sufficient benefits.</p>
+<h3>3. Use Hierarchical Organization at Scale</h3>
 
-<h3>The Debuggability Argument</h3>
+<pre><code># Instead of 50 flat skills:
+skills = ["skill_1", "skill_2", ... "skill_50"]
 
-<p>When a single-agent system fails, you have one context to inspect, one decision trace to follow, one set of skill selections to analyze. When a multi-agent system fails, you're often left asking: "Which agent went wrong? What was the state when the handoff happened? Did Agent B receive what Agent A intended to send?"</p>
+# Organize hierarchically:
+skill_categories = {
+    "writing": ["blog_post", "documentation", "email"],
+    "analysis": ["data_analysis", "code_review", "research"],
+    "code": ["python", "javascript", "sql"]
+}
 
-<p>This isn't a minor operational detail—debuggability directly impacts your ability to improve and maintain systems over time.</p>
+# Agent selects category first, then specific skill</code></pre>
 
-<h3>The Cognitive Science Parallel</h3>
+<h3>4. When Multi-Agent Still Makes Sense</h3>
 
-<p>I find the parallel to human cognitive limits particularly compelling. Humans don't spawn sub-humans to think through complex problems. We develop skills, internalize expertise, and apply the right approach from our personal repertoire. The most capable humans aren't those running the most complex internal bureaucracies—they're those with well-developed, easily-accessible skills.</p>
+<ul>
+    <li><strong>Truly parallel workloads</strong>: Tasks that can execute simultaneously</li>
+    <li><strong>Different models needed</strong>: GPT-4 for reasoning, Claude for writing</li>
+    <li><strong>Isolation requirements</strong>: Hard boundaries between workflow parts</li>
+    <li><strong>Different oversight levels</strong>: Some agents need human approval</li>
+</ul>
 
-<p>Why should we expect LLMs to be different?</p>
+<hr>
 
-<h3>A Prediction</h3>
+<h2>Why I'm Bullish on Single-Agent</h2>
 
-<p>I expect we'll see a "simplification wave" in agent architectures over the next year or two. Teams that rushed to multi-agent systems will discover that simpler approaches often work better—and are dramatically easier to maintain. The pendulum will swing back toward single-agent architectures augmented with well-curated skills.</p>
+<p>Multi-agent enthusiasm has been driven by impressive demos, not production success. The coordination complexity is real:</p>
 
-<p>This doesn't mean multi-agent disappears. It means it finds its appropriate niche rather than being the hammer for every nail.</p>
+<div class="diagram">
+Multi-Agent Failure Debugging:
+┌─────────────────────────────────────────────────┐
+│ "Something went wrong"                          │
+│                                                 │
+│  → Which agent failed?                          │
+│  → What was the state at handoff?               │
+│  → Did Agent B receive what Agent A sent?       │
+│  → Where's the context from 3 agents ago?       │
+└─────────────────────────────────────────────────┘
+
+Single-Agent Failure Debugging:
+┌─────────────────────────────────────────────────┐
+│ "Something went wrong"                          │
+│                                                 │
+│  → Check the one context                        │
+│  → Follow the one decision trace                │
+│  → Done                                         │
+└─────────────────────────────────────────────────┘
+</div>
+
+<p>The cognitive science parallel is compelling: humans don't spawn sub-processes to think. We develop skills and apply them from a unified mind. Why should LLMs be different?</p>
+
+<p><strong>Prediction:</strong> We'll see a "simplification wave" in agent architectures. Teams will discover simpler approaches work better and are dramatically easier to maintain.</p>
 
 <hr>
 
 <h2>The Bottom Line</h2>
 
-<p>Before your next agent project, I'd encourage you to start with a question: "Could a single agent with the right skills handle this?"</p>
+<p>Before your next agent project, ask: <em>"Could a single agent with the right skills handle this?"</em></p>
 
-<p>The research suggests that for many—perhaps most—use cases, the answer is yes. And when it is, you'll benefit from lower token costs, reduced latency, simpler debugging, and more predictable behavior.</p>
+<p>The research suggests for most use cases, yes. You'll get lower token costs, reduced latency, simpler debugging, and more predictable behavior.</p>
 
-<p>That's not a bad trade for letting go of some architectural complexity.</p>
-
-<p>For those interested in the full details, the paper "When Single-Agent with Skills Replace Multi-Agent Systems and When They Fail" is worth reading in full. It provides a rigorous foundation for what many practitioners have suspected: sometimes simpler really is better.</p>
+<p>That's not a bad trade for letting go of architectural complexity.</p>
 
 <hr>
 

@@ -84,50 +84,50 @@
 <p>Instead of this:</p>
 
 <div class="diagram">
-┌─────────────────────────────────────────────────────────┐
-│                    MULTI-AGENT SYSTEM                   │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│   ┌──────────┐    ┌──────────┐    ┌──────────┐         │
-│   │ Research │───▶│ Writing  │───▶│ Review   │         │
-│   │  Agent   │    │  Agent   │    │  Agent   │         │
-│   └──────────┘    └──────────┘    └──────────┘         │
-│        │              │               │                 │
-│        ▼              ▼               ▼                 │
-│   [Context A]    [Context B]    [Context C]            │
-│                                                         │
-│   • 3 separate contexts (token duplication)            │
-│   • Coordination overhead                               │
-│   • Complex failure modes                               │
-└─────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│                   MULTI-AGENT SYSTEM                  │
+├───────────────────────────────────────────────────────┤
+│                                                       │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐        │
+│  │ Research │───▶│ Writing  │───▶│ Review   │        │
+│  │  Agent   │    │  Agent   │    │  Agent   │        │
+│  └──────────┘    └──────────┘    └──────────┘        │
+│       │              │               │               │
+│       ▼              ▼               ▼               │
+│  [Context A]    [Context B]    [Context C]           │
+│                                                       │
+│  • 3 separate contexts (token duplication)           │
+│  • Coordination overhead                             │
+│  • Complex failure modes                             │
+└───────────────────────────────────────────────────────┘
 </div>
 
 <p>The research proposes this:</p>
 
 <div class="diagram">
-┌─────────────────────────────────────────────────────────┐
-│               SINGLE-AGENT WITH SKILLS                  │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│                   ┌──────────────┐                      │
-│                   │    Agent     │                      │
-│                   │              │                      │
-│                   │  ┌────────┐  │                      │
-│                   │  │ Skills │  │                      │
-│                   │  ├────────┤  │                      │
-│                   │  │research│  │                      │
-│                   │  │ write  │  │                      │
-│                   │  │ review │  │                      │
-│                   │  └────────┘  │                      │
-│                   └──────────────┘                      │
-│                         │                               │
-│                         ▼                               │
-│                  [Single Context]                       │
-│                                                         │
-│   • One unified context                                 │
-│   • Direct skill invocation                             │
-│   • Simple debugging                                    │
-└─────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│              SINGLE-AGENT WITH SKILLS                 │
+├───────────────────────────────────────────────────────┤
+│                                                       │
+│                  ┌──────────────┐                     │
+│                  │    Agent     │                     │
+│                  │              │                     │
+│                  │  ┌────────┐  │                     │
+│                  │  │ Skills │  │                     │
+│                  │  ├────────┤  │                     │
+│                  │  │research│  │                     │
+│                  │  │ write  │  │                     │
+│                  │  │ review │  │                     │
+│                  │  └────────┘  │                     │
+│                  └──────────────┘                     │
+│                        │                              │
+│                        ▼                              │
+│                 [Single Context]                      │
+│                                                       │
+│  • One unified context                                │
+│  • Direct skill invocation                            │
+│  • Simple debugging                                   │
+└───────────────────────────────────────────────────────┘
 </div>
 <p class="diagram-caption">Skills become internalized agent behaviors within a single context</p>
 
@@ -241,23 +241,23 @@ skill_categories = {
 
 <div class="diagram">
 Multi-Agent Failure Debugging:
-┌─────────────────────────────────────────────────┐
-│ "Something went wrong"                          │
-│                                                 │
-│  → Which agent failed?                          │
-│  → What was the state at handoff?               │
-│  → Did Agent B receive what Agent A sent?       │
-│  → Where's the context from 3 agents ago?       │
-└─────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────┐
+│ "Something went wrong"                        │
+│                                               │
+│  → Which agent failed?                        │
+│  → What was the state at handoff?             │
+│  → Did Agent B receive what Agent A sent?     │
+│  → Where's the context from 3 agents ago?     │
+└───────────────────────────────────────────────┘
 
 Single-Agent Failure Debugging:
-┌─────────────────────────────────────────────────┐
-│ "Something went wrong"                          │
-│                                                 │
-│  → Check the one context                        │
-│  → Follow the one decision trace                │
-│  → Done                                         │
-└─────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────┐
+│ "Something went wrong"                        │
+│                                               │
+│  → Check the one context                      │
+│  → Follow the one decision trace              │
+│  → Done                                       │
+└───────────────────────────────────────────────┘
 </div>
 
 <p>The cognitive science parallel is compelling: humans don't spawn sub-processes to think. We develop skills and apply them from a unified mind. Why should LLMs be different?</p>

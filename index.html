@@ -91,30 +91,52 @@
 
 <p>Instead of this:</p>
 
-<blockquote>
-<p><strong>MULTI-AGENT SYSTEM</strong></p>
-<p>Research Agent → Writing Agent → Review Agent</p>
-<p>Each with separate context: Context A | Context B | Context C</p>
-<ul>
-<li>3 separate contexts (token duplication)</li>
-<li>Coordination overhead</li>
-<li>Complex failure modes</li>
-</ul>
-</blockquote>
+<pre class="diagram">
++-------------------------------------------------------+
+|                   MULTI-AGENT SYSTEM                  |
++-------------------------------------------------------+
+|                                                       |
+|  +----------+    +----------+    +----------+         |
+|  | Research |--->| Writing  |--->| Review   |         |
+|  |  Agent   |    |  Agent   |    |  Agent   |         |
+|  +----------+    +----------+    +----------+         |
+|       |              |               |                |
+|       v              v               v                |
+|  [Context A]    [Context B]    [Context C]            |
+|                                                       |
+|  - 3 separate contexts (token duplication)            |
+|  - Coordination overhead                              |
+|  - Complex failure modes                              |
++-------------------------------------------------------+
+</pre>
 
 <p>The research proposes this:</p>
 
-<blockquote>
-<p><strong>SINGLE-AGENT WITH SKILLS</strong></p>
-<p>One Agent with Skills: research, write, review</p>
-<p>↓</p>
-<p>Single Context</p>
-<ul>
-<li>One unified context</li>
-<li>Direct skill invocation</li>
-<li>Simple debugging</li>
-</ul>
-</blockquote>
+<pre class="diagram">
++-------------------------------------------------------+
+|              SINGLE-AGENT WITH SKILLS                 |
++-------------------------------------------------------+
+|                                                       |
+|                  +--------------+                     |
+|                  |    Agent     |                     |
+|                  |              |                     |
+|                  |  +--------+  |                     |
+|                  |  | Skills |  |                     |
+|                  |  +--------+  |                     |
+|                  |  |research|  |                     |
+|                  |  | write  |  |                     |
+|                  |  | review |  |                     |
+|                  |  +--------+  |                     |
+|                  +--------------+                     |
+|                        |                              |
+|                        v                              |
+|                 [Single Context]                      |
+|                                                       |
+|  - One unified context                                |
+|  - Direct skill invocation                            |
+|  - Simple debugging                                   |
++-------------------------------------------------------+
+</pre>
 <p class="diagram-caption">Skills become internalized agent behaviors within a single context</p>
 
 <p>The result: substantially reduced token usage and latency while maintaining competitive accuracy.</p>
@@ -127,12 +149,21 @@
 
 <p>The research found a <strong>phase transition</strong>: skill selection accuracy stays stable up to a critical library size, then drops sharply. No gradual degradation—just a cliff.</p>
 
-<blockquote>
-<p><strong>Skill Selection Accuracy vs. Library Size</strong></p>
-<p>5-15 skills: ~100% accuracy (Stable Zone)</p>
-<p>15-20 skills: Sharp drop to ~50%</p>
-<p>20+ skills: Continued degradation (Breakdown Zone)</p>
-</blockquote>
+<pre class="diagram">
+Skill Selection Accuracy vs. Library Size
+
+100% │ ●●●●●●●●●●●●●●●●●●●
+     │                     ●
+     │                      ●
+ 50% │                       ●
+     │                        ●●●●●●●●●
+     │
+  0% └────────────────────────────────────
+         5    10    15    20    25    30
+              Number of Skills
+
+     [Stable Zone]    │  [Breakdown]
+</pre>
 <p class="diagram-caption">Performance remains stable until hitting a critical threshold</p>
 
 <h3>The Real Culprit: Semantic Similarity</h3>
@@ -214,24 +245,26 @@ skill_categories = {
 
 <p>Multi-agent enthusiasm has been driven by impressive demos, not production success. The coordination complexity is real:</p>
 
-<blockquote>
-<p><strong>Multi-Agent Failure Debugging:</strong> "Something went wrong"</p>
-<ul>
-<li>Which agent failed?</li>
-<li>What was the state at handoff?</li>
-<li>Did Agent B receive what Agent A sent?</li>
-<li>Where's the context from 3 agents ago?</li>
-</ul>
-</blockquote>
+<pre class="diagram">
+Multi-Agent Failure Debugging:
++-----------------------------------------------+
+| "Something went wrong"                        |
+|                                               |
+|  -> Which agent failed?                       |
+|  -> What was the state at handoff?            |
+|  -> Did Agent B receive what Agent A sent?    |
+|  -> Where's the context from 3 agents ago?    |
++-----------------------------------------------+
 
-<blockquote>
-<p><strong>Single-Agent Failure Debugging:</strong> "Something went wrong"</p>
-<ul>
-<li>Check the one context</li>
-<li>Follow the one decision trace</li>
-<li>Done</li>
-</ul>
-</blockquote>
+Single-Agent Failure Debugging:
++-----------------------------------------------+
+| "Something went wrong"                        |
+|                                               |
+|  -> Check the one context                     |
+|  -> Follow the one decision trace             |
+|  -> Done                                      |
++-----------------------------------------------+
+</pre>
 
 <p>The cognitive science parallel is compelling: humans don't spawn sub-processes to think. We develop skills and apply them from a unified mind. Why should LLMs be different?</p>
 

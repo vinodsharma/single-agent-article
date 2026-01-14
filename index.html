@@ -73,7 +73,7 @@
 
 <article>
 
-<img src="hero-image.png" alt="Unified Agent Architecture vs Multi-Agent Chaos - single glowing agent with skills versus tangled robots" class="hero-image">
+<img src="https://vinodsharma.github.io/single-agent-article/hero-image.png" alt="Unified Agent Architecture vs Multi-Agent Chaos - single glowing agent with skills versus tangled robots" class="hero-image">
 
 <h1>Single-Agent with Skills vs. Multi-Agent Systems: What the Research Shows</h1>
 
@@ -91,7 +91,7 @@
 
 <p>Instead of this:</p>
 
-<div class="diagram">
+<pre class="diagram">
 +-------------------------------------------------------+
 |                   MULTI-AGENT SYSTEM                  |
 +-------------------------------------------------------+
@@ -108,11 +108,11 @@
 |  - Coordination overhead                              |
 |  - Complex failure modes                              |
 +-------------------------------------------------------+
-</div>
+</pre>
 
 <p>The research proposes this:</p>
 
-<div class="diagram">
+<pre class="diagram">
 +-------------------------------------------------------+
 |              SINGLE-AGENT WITH SKILLS                 |
 +-------------------------------------------------------+
@@ -136,7 +136,7 @@
 |  - Direct skill invocation                            |
 |  - Simple debugging                                   |
 +-------------------------------------------------------+
-</div>
+</pre>
 <p class="diagram-caption">Skills become internalized agent behaviors within a single context</p>
 
 <p>The result: substantially reduced token usage and latency while maintaining competitive accuracy.</p>
@@ -149,7 +149,7 @@
 
 <p>The research found a <strong>phase transition</strong>: skill selection accuracy stays stable up to a critical library size, then drops sharply. No gradual degradation—just a cliff.</p>
 
-<div class="diagram">
+<pre class="diagram">
 Skill Selection Accuracy vs. Library Size
 
 100% │ ●●●●●●●●●●●●●●●●●●●
@@ -163,7 +163,7 @@ Skill Selection Accuracy vs. Library Size
               Number of Skills
 
      [Stable Zone]    │  [Breakdown]
-</div>
+</pre>
 <p class="diagram-caption">Performance remains stable until hitting a critical threshold</p>
 
 <h3>The Real Culprit: Semantic Similarity</h3>
@@ -245,7 +245,7 @@ skill_categories = {
 
 <p>Multi-agent enthusiasm has been driven by impressive demos, not production success. The coordination complexity is real:</p>
 
-<div class="diagram">
+<pre class="diagram">
 Multi-Agent Failure Debugging:
 +-----------------------------------------------+
 | "Something went wrong"                        |
@@ -264,7 +264,7 @@ Single-Agent Failure Debugging:
 |  -> Follow the one decision trace             |
 |  -> Done                                      |
 +-----------------------------------------------+
-</div>
+</pre>
 
 <p>The cognitive science parallel is compelling: humans don't spawn sub-processes to think. We develop skills and apply them from a unified mind. Why should LLMs be different?</p>
 

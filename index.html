@@ -91,52 +91,11 @@
 
 <p>Instead of this:</p>
 
-<pre class="diagram">
-+-------------------------------------------------------+
-|                   MULTI-AGENT SYSTEM                  |
-+-------------------------------------------------------+
-|                                                       |
-|  +----------+    +----------+    +----------+         |
-|  | Research |--->| Writing  |--->| Review   |         |
-|  |  Agent   |    |  Agent   |    |  Agent   |         |
-|  +----------+    +----------+    +----------+         |
-|       |              |               |                |
-|       v              v               v                |
-|  [Context A]    [Context B]    [Context C]            |
-|                                                       |
-|  - 3 separate contexts (token duplication)            |
-|  - Coordination overhead                              |
-|  - Complex failure modes                              |
-+-------------------------------------------------------+
-</pre>
+<img src="https://vinodsharma.github.io/single-agent-article/diagram-1-multi-agent.png" alt="Multi-Agent System: Research Agent, Writing Agent, and Review Agent each with separate contexts, showing token duplication, coordination overhead, and complex failure modes" class="article-image">
 
 <p>The research proposes this:</p>
 
-<pre class="diagram">
-+-------------------------------------------------------+
-|              SINGLE-AGENT WITH SKILLS                 |
-+-------------------------------------------------------+
-|                                                       |
-|                  +--------------+                     |
-|                  |    Agent     |                     |
-|                  |              |                     |
-|                  |  +--------+  |                     |
-|                  |  | Skills |  |                     |
-|                  |  +--------+  |                     |
-|                  |  |research|  |                     |
-|                  |  | write  |  |                     |
-|                  |  | review |  |                     |
-|                  |  +--------+  |                     |
-|                  +--------------+                     |
-|                        |                              |
-|                        v                              |
-|                 [Single Context]                      |
-|                                                       |
-|  - One unified context                                |
-|  - Direct skill invocation                            |
-|  - Simple debugging                                   |
-+-------------------------------------------------------+
-</pre>
+<img src="https://vinodsharma.github.io/single-agent-article/diagram-2-single-agent.png" alt="Single-Agent with Skills: One agent with research, write, and review skills sharing a single context, enabling unified context, direct skill invocation, and simple debugging" class="article-image">
 <p class="diagram-caption">Skills become internalized agent behaviors within a single context</p>
 
 <p>The result: substantially reduced token usage and latency while maintaining competitive accuracy.</p>
@@ -149,21 +108,7 @@
 
 <p>The research found a <strong>phase transition</strong>: skill selection accuracy stays stable up to a critical library size, then drops sharply. No gradual degradation—just a cliff.</p>
 
-<pre class="diagram">
-Skill Selection Accuracy vs. Library Size
-
-100% │ ●●●●●●●●●●●●●●●●●●●
-     │                     ●
-     │                      ●
- 50% │                       ●
-     │                        ●●●●●●●●●
-     │
-  0% └────────────────────────────────────
-         5    10    15    20    25    30
-              Number of Skills
-
-     [Stable Zone]    │  [Breakdown]
-</pre>
+<img src="https://vinodsharma.github.io/single-agent-article/diagram-3-phase-transition.png" alt="Phase Transition Graph: Skill selection accuracy stays at 100% until around 20 skills, then drops sharply to 50%, showing stable zone followed by breakdown" class="article-image">
 <p class="diagram-caption">Performance remains stable until hitting a critical threshold</p>
 
 <h3>The Real Culprit: Semantic Similarity</h3>
@@ -245,26 +190,7 @@ skill_categories = {
 
 <p>Multi-agent enthusiasm has been driven by impressive demos, not production success. The coordination complexity is real:</p>
 
-<pre class="diagram">
-Multi-Agent Failure Debugging:
-+-----------------------------------------------+
-| "Something went wrong"                        |
-|                                               |
-|  -> Which agent failed?                       |
-|  -> What was the state at handoff?            |
-|  -> Did Agent B receive what Agent A sent?    |
-|  -> Where's the context from 3 agents ago?    |
-+-----------------------------------------------+
-
-Single-Agent Failure Debugging:
-+-----------------------------------------------+
-| "Something went wrong"                        |
-|                                               |
-|  -> Check the one context                     |
-|  -> Follow the one decision trace             |
-|  -> Done                                      |
-+-----------------------------------------------+
-</pre>
+<img src="https://vinodsharma.github.io/single-agent-article/diagram-4-debugging.png" alt="Debugging Comparison: Multi-agent requires checking which agent failed, handoff state, message passing, and multiple contexts. Single-agent just needs checking one context, one decision trace, done." class="article-image">
 
 <p>The cognitive science parallel is compelling: humans don't spawn sub-processes to think. We develop skills and apply them from a unified mind. Why should LLMs be different?</p>
 

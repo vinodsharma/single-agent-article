@@ -1,36 +1,34 @@
-# Porting Karpathy's microGPT from Python to Rust: Everything Else Is Just Efficiency
+# microGPT in Rust: 208 Lines, 50x Faster Than Python
 
-*What happens when you take a 200-line pure-Python GPT and rewrite it in 208 lines of Rust? A deep look at tape-based autograd, ownership trade-offs, and what "efficiency" really means.*
-
----
-
-Andrej Karpathy recently released [microgpt.py](https://gist.github.com/karpathy/8627fe009c40f57531cb18360106ce95)—a complete GPT implementation in ~200 lines of pure Python with zero dependencies. No PyTorch, no NumPy. Just `math`, `random`, and `os`. The tagline:
-
-> *"The most atomic way to train and inference a GPT in pure, dependency-free Python. This file is the complete algorithm. Everything else is just efficiency."*
-
-That tagline is an invitation. If everything else is just efficiency, what happens when you chase that efficiency as far as it goes? What does the "everything else" actually look like?
-
-I ported microgpt.py to Rust. Here's what I learned.
+*Porting Karpathy's microgpt.py to zero-dependency Rust—same algorithm, same line count, 50x the speed.*
 
 ---
 
-## What microgpt.py Actually Does
+Andrej Karpathy released [microgpt.py](https://gist.github.com/karpathy/8627fe009c40f57531cb18360106ce95)—a complete GPT in ~200 lines of pure Python. No PyTorch, no NumPy. Just `math`, `random`, and `os`. The tagline:
 
-In ~200 lines, Karpathy's code implements:
+> *"This file is the complete algorithm. Everything else is just efficiency."*
 
-- **Scalar autograd** — A `Value` class that builds a computation graph, tracking every add, multiply, and exp so it can backpropagate gradients
-- **A GPT-2-style transformer** — Token and position embeddings, multi-head attention with KV cache, RMSNorm, and a feed-forward MLP
-- **Adam optimizer** — With bias correction and linear learning rate decay
-- **Training loop** — 1000 steps over a character-level names dataset
-- **Inference** — Temperature-controlled sampling to generate 20 new names
-
-The architecture: 16-dimensional embeddings, 4 attention heads, 1 layer, context length of 16, ~4200 parameters. Tiny, but a real transformer.
+So I chased the efficiency. I ported it to Rust: [microgpt-rust.rs](https://gist.github.com/vinodsharma/64f9460d7c9f2ef4dbfe45591c7a6a6e)—208 lines, zero dependencies, 50x faster. Here's what that took.
 
 ---
 
-## The Porting Challenge: Ownership vs. Computation Graphs
+## What microgpt Does
 
-Python's `Value` class is elegant. Each value holds references to its children, forming a DAG (directed acyclic graph). Backpropagation walks this graph in reverse topological order.
+Both versions implement the same thing in roughly the same number of lines:
+
+- **Scalar autograd** — every add, multiply, and exp tracked for backpropagation
+- **A GPT-2-style transformer** — embeddings, multi-head attention, RMSNorm, MLP
+- **Adam optimizer** — bias correction, linear learning rate decay
+- **Training** — 1000 steps on a character-level names dataset (32K names)
+- **Inference** — temperature sampling to generate 20 new names
+
+The architecture: 16-dimensional embeddings, 4 attention heads, 1 layer, context length 16, ~4200 parameters. Tiny, but a real transformer.
+
+---
+
+## The Hard Part: Ownership vs. Computation Graphs
+
+Python's `Value` class builds a DAG with shared references. Each node points to its children. Backpropagation walks this graph in reverse.
 
 ```python
 class Value:
@@ -41,42 +39,30 @@ class Value:
         self._local_grads = local_grads
 ```
 
-This works in Python because of reference counting and garbage collection. Multiple values can point to the same child. The graph can be arbitrarily tangled.
+This works because Python has garbage collection. Rust doesn't. Shared mutable references require `Rc<RefCell<...>>`, which is verbose, slow, and fights the borrow checker.
 
-In Rust, this is a problem. Rust's ownership model demands that every value has exactly one owner. Shared mutable references require `Rc<RefCell<...>>`, which is verbose, slow, and fights the borrow checker at every turn.
-
-The solution: **don't build a graph at all**. Use a tape.
+The solution: **don't build a graph**. Use a tape.
 
 ---
 
 ## Tape-Based Autograd
 
-Instead of each value holding references to its children, we store everything in flat arrays:
+Everything lives in flat arrays. A value is just an index:
 
 ```rust
-struct V(usize);  // just an index
-
-enum Op {
-    None,
-    Add(usize, usize),
-    Mul(usize, usize),
-    Pow(usize, f64),
-    Log(usize),
-    Exp(usize),
-    Relu(usize),
-}
+struct V(usize);  // just an index into the tape
 
 struct Tape {
-    values: Vec<f64>,
-    grads:  Vec<f64>,
-    ops:    Vec<Op>,
-    n_params: usize,
+    values: Vec<f64>,   // forward values
+    grads:  Vec<f64>,   // backward gradients
+    ops:    Vec<Op>,    // what produced each value
+    n_params: usize,    // parameters live at indices 0..n_params
 }
 ```
 
-Every operation appends to the tape. `V(42)` doesn't hold a value—it's an index into `tape.values[42]`. No references, no lifetimes, no `Rc`.
+Every operation appends to the tape. `V(42)` means `tape.values[42]`. No references, no lifetimes, no `Rc`.
 
-The backward pass is trivial: walk the tape in reverse, accumulate gradients.
+Backward is trivial—walk the tape in reverse:
 
 ```rust
 fn backward(&mut self, loss: V) {
@@ -85,29 +71,26 @@ fn backward(&mut self, loss: V) {
         let g = self.grads[i];
         if g == 0.0 { continue; }
         match self.ops[i] {
-            Op::Add(a, b) => {
-                self.grads[a] += g;
-                self.grads[b] += g;
-            }
+            Op::Add(a, b) => { self.grads[a] += g; self.grads[b] += g; }
             Op::Mul(a, b) => {
                 self.grads[a] += self.values[b] * g;
                 self.grads[b] += self.values[a] * g;
             }
-            // ... other ops
+            // ... Pow, Log, Exp, Relu
         }
     }
 }
 ```
 
-No topological sort needed. The tape is already in topological order by construction—an operation can only reference earlier entries.
+No topological sort needed. The tape is already in order by construction.
 
-After each training step, the tape resets: truncate back to the parameter slots, zero the gradients. Parameters live at indices `0..n_params`; everything else is ephemeral.
+After each training step, `reset()` truncates back to parameter slots and zeros gradients. Parameters persist; everything else is ephemeral.
 
 ---
 
-## What Mapped Cleanly
+## What Translated Directly
 
-Most of the model translated directly. The GPT forward pass—embeddings, attention, MLP—is the same algorithm, just routing through the tape instead of building `Value` objects:
+Most of the model is the same algorithm routing through the tape:
 
 ```rust
 // Python: x = [t + p for t, p in zip(tok_emb, pos_emb)]
@@ -117,77 +100,68 @@ let x: Vec<V> = (0..n_embd)
     .collect();
 ```
 
-The Adam optimizer is almost line-for-line. Softmax, RMSNorm, and linear layers are structurally identical.
+Adam, softmax, RMSNorm, linear layers—all structurally identical.
 
 ### What Needed Rethinking
 
-- **Random number generation:** Python has `random.gauss()`. Rust has no built-in RNG (without the `rand` crate). I implemented a linear congruential generator with Box-Muller transform for Gaussian sampling—keeping the zero-dependency spirit.
-- **Parameter initialization:** Python uses a dictionary of nested lists. Rust uses a `Matrix` struct that stores parameter indices into the tape, with row-major access.
-- **The division operator:** Python's `__truediv__` becomes `tape.pow(b, -1.0)` followed by `tape.mul(a, b_inv)`. Every convenience operator needs to be explicit.
+- **RNG:** No built-in `random.gauss()` in Rust. I used a linear congruential generator with Box-Muller transform—keeping the zero-dependency spirit.
+- **Parameters:** Python uses a dictionary of nested lists. Rust uses a `Matrix` struct storing indices into the tape.
+- **Operators:** Python's `__truediv__` becomes `tape.pow(b, -1.0)` then `tape.mul(a, inv_b)`. Every operator spelled out.
 
 ---
 
-## Performance Results
+## Results
 
-Same dataset (32K names), same hyperparameters, same number of training steps.
+Same dataset, same hyperparameters, same training steps.
 
-| Metric | Python | Rust |
+| Metric | Python (199 lines) | Rust (208 lines) |
 |---|---|---|
 | Training time (1000 steps) | ~120s | ~2.5s |
 | Per-step time | ~120ms | ~2.5ms |
-| Lines of code | 199 | 208 |
 | Final loss range | ~2.0–2.5 | ~1.7–2.5 |
 | Generated names | Plausible | Plausible |
 
-### ~50x faster
+### ~50x faster — same line count
 
-The speedup comes from multiple factors working together:
+Where the speedup comes from:
 
 - **No interpreter overhead:** Python dispatches every `+` and `*` through the object protocol. Rust compiles to native arithmetic.
-- **Cache-friendly memory layout:** The tape stores all values in a contiguous `Vec<f64>`. Python's `Value` objects are scattered across the heap.
-- **No garbage collection:** Python's GC pauses to trace the computation graph. Rust's tape just truncates.
-- **No object creation:** Python allocates a new `Value` object for every operation. Rust appends an `f64` and an `Op` enum.
+- **Cache-friendly layout:** The tape is a contiguous `Vec<f64>`. Python's `Value` objects are scattered across the heap.
+- **No GC:** Python pauses to trace the computation graph. Rust's tape just truncates.
+- **No allocation:** Python creates a new `Value` object per operation. Rust appends an `f64` and an `Op` enum.
 
 ---
 
-## What "Everything Else Is Just Efficiency" Really Means
+## What "Everything Else Is Just Efficiency" Means
 
-Karpathy's tagline is precisely correct, but the implications run deeper than they first appear.
+Both versions implement the *same algorithm*. Same math, same architecture, same optimizer. They converge to the same loss and generate the same quality of names.
 
-The Python version and the Rust version implement the *same algorithm*. The same math, the same architecture, the same optimizer. They converge to the same loss and generate the same quality of output.
+The difference is the *representation*:
 
-The difference is purely in the *representation* of that algorithm:
+- Python: heap-allocated objects with reference-counted pointers
+- Rust: indices into contiguous arrays
 
-- Python represents the computation graph as a network of heap-allocated objects with reference-counted pointers
-- Rust represents it as indices into contiguous arrays
+Both correct. One is 50x faster. That's the "everything else."
 
-Both are correct. But one is 50x faster. That's the "everything else."
+And this is still just one rung on the ladder. PyTorch adds tensor ops, CUDA, operator fusion, mixed precision, distributed training. Each is "just efficiency"—but those steps are what make billion-parameter models possible.
 
-And this is just one step on the ladder. Real frameworks like PyTorch add tensor operations (BLAS, CUDA), operator fusion, mixed precision, distributed training. Each step is "just efficiency"—but those steps are what make training billion-parameter models possible instead of a toy demo.
-
-The beauty of microgpt is that it strips away all those layers to reveal the core algorithm. The beauty of porting it is seeing exactly what those layers buy you.
+The beauty of microgpt is stripping away those layers to reveal the core algorithm. The beauty of porting it is seeing exactly what they buy you.
 
 ---
 
-## Try It Yourself
+## Try It
 
-The complete code is on GitHub:
-
-- [Karpathy's original microgpt.py](https://gist.github.com/karpathy/8627fe009c40f57531cb18360106ce95)
-- [Rust port + benchmark scripts](https://github.com/vinodsharma/social-media-update/tree/microgpt-rust-port/microgpt-rust)
+- [microgpt.py](https://gist.github.com/karpathy/8627fe009c40f57531cb18360106ce95) — Karpathy's original (Python, 199 lines)
+- [microgpt-rust.rs](https://gist.github.com/vinodsharma/64f9460d7c9f2ef4dbfe45591c7a6a6e) — Rust port (208 lines, ~50x faster)
 
 ```bash
-# Run the Rust version
-cd microgpt-rust/rust
-cargo run --release
+# Rust
+curl -O https://gist.githubusercontent.com/vinodsharma/64f9460d7c9f2ef4dbfe45591c7a6a6e/raw/microgpt-rust.rs
+rustc -O microgpt-rust.rs -o microgpt && ./microgpt
 
-# Run the Python version
-cd microgpt-rust/python
+# Python
+curl -O https://gist.githubusercontent.com/karpathy/8627fe009c40f57531cb18360106ce95/raw/microgpt.py
 python3 microgpt.py
-
-# Run benchmarks
-cd microgpt-rust/benchmark
-./run_benchmarks.sh
 ```
 
 ---

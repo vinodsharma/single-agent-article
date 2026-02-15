@@ -134,18 +134,18 @@ Where the speedup comes from:
 
 ## What "Everything Else Is Just Efficiency" Means
 
-Both versions implement the *same algorithm*. Same math, same architecture, same optimizer. They converge to the same loss and generate the same quality of names.
+Karpathy's microgpt.py makes a remarkable contribution: it distills a GPT down to its essence—200 lines anyone can read, run, and learn from. No frameworks to install, no abstractions to unpack. The algorithm is right there. That clarity is the whole point.
 
-The difference is the *representation*:
+The Rust port asks a different question: what does the gap between algorithm and performance actually look like? Both versions implement the same math, the same architecture, the same optimizer. They converge to the same loss and generate the same quality of names. The difference is purely in *representation*:
 
-- Python: heap-allocated objects with reference-counted pointers
-- Rust: indices into contiguous arrays
+- Python represents the computation graph as heap-allocated objects with reference-counted pointers—optimized for readability and expressiveness
+- Rust represents it as indices into contiguous arrays—optimized for the machine
 
-Both correct. One is 50x faster. That's the "everything else."
+That difference in representation accounts for a 50x speedup. And that's what "everything else is just efficiency" really means—the algorithm doesn't change, but the way you lay it out in memory determines whether it takes two minutes or two seconds.
 
-And this is still just one rung on the ladder. PyTorch adds tensor ops, CUDA, operator fusion, mixed precision, distributed training. Each is "just efficiency"—but those steps are what make billion-parameter models possible.
+This is also just one rung on the ladder. PyTorch adds tensor ops, CUDA, operator fusion, mixed precision, distributed training. Each is "just efficiency"—but those steps are what make billion-parameter models possible instead of a toy demo.
 
-The beauty of microgpt is stripping away those layers to reveal the core algorithm. The beauty of porting it is seeing exactly what they buy you.
+microgpt.py reveals the algorithm. Porting it reveals the cost of the abstractions we normally take for granted—and why frameworks like PyTorch exist to bridge that gap.
 
 ---
 

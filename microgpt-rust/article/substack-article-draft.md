@@ -1,6 +1,6 @@
 # microGPT in Rust: 208 Lines, 50x Faster Than Python
 
-*Porting Karpathy's microgpt.py to zero-dependency Rust—same algorithm, same line count, 50x the speed.*
+*Porting Karpathy's microgpt.py to zero-dependency Rust—same algorithm, comparable line count, 50x the speed.*
 
 ---
 
@@ -121,7 +121,7 @@ Same dataset, same hyperparameters, same training steps.
 | Final loss range | ~2.0–2.5 | ~1.7–2.5 |
 | Generated names | Plausible | Plausible |
 
-### ~50x faster — same line count
+### ~50x faster — comparable line count
 
 Where the speedup comes from:
 

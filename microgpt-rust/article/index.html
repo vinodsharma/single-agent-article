@@ -228,22 +228,13 @@ let x: Vec&lt;V&gt; = (0..n_embd)
 
 <hr>
 
-<h2>What "Everything Else Is Just Efficiency" Means</h2>
+<h2>What the Port Reveals</h2>
 
-<p>Both versions implement the <em>same algorithm</em>. Same math, same architecture, same optimizer. They converge to the same loss and generate the same quality of names.</p>
+<p>Both versions converge to the same loss and generate the same quality of names. The algorithm is identical. The only difference is how it's laid out in memory&mdash;heap-allocated objects vs. contiguous arrays&mdash;and that accounts for a 50x speedup.</p>
 
-<p>The difference is the <em>representation</em>:</p>
+<p>And this is still just one rung on the ladder. PyTorch adds tensor ops, CUDA, operator fusion, mixed precision, distributed training&mdash;each layer building on the last, turning a toy demo into billion-parameter models.</p>
 
-<ul>
-    <li>Python: heap-allocated objects with reference-counted pointers</li>
-    <li>Rust: indices into contiguous arrays</li>
-</ul>
-
-<p>Both correct. One is 50x faster. That's the "everything else."</p>
-
-<p>And this is still just one rung on the ladder. PyTorch adds tensor ops, CUDA, operator fusion, mixed precision, distributed training. Each is "just efficiency"&mdash;but those steps are what make billion-parameter models possible.</p>
-
-<p>The beauty of microgpt is stripping away those layers to reveal the core algorithm. The beauty of porting it is seeing exactly what they buy you.</p>
+<p>The beauty of microgpt is stripping away all those layers to reveal the core algorithm. The beauty of porting it to Rust is seeing exactly what those layers buy you.</p>
 
 <hr>
 

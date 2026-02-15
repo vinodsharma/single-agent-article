@@ -232,9 +232,7 @@ let x: Vec&lt;V&gt; = (0..n_embd)
 
 <p>Both versions converge to the same loss and generate the same quality of names. The algorithm is identical. The difference is everything below the algorithm&mdash;compiled arithmetic vs. interpreter dispatch, contiguous arrays vs. heap-scattered objects, truncating a vector vs. tracing a garbage collector. None of that changes the math. All of it accounts for the 50x.</p>
 
-<p>And this is still just one rung on the ladder. PyTorch adds tensor ops, CUDA, operator fusion, mixed precision, distributed training&mdash;each layer building on the last, turning a toy demo into billion-parameter models.</p>
-
-<p>The beauty of microgpt is stripping away all those layers to reveal the core algorithm. The beauty of porting it to Rust is seeing exactly what those layers buy you.</p>
+<p>Karpathy's microgpt strips away frameworks to reveal what a GPT actually computes. Porting it to Rust strips away the language runtime to reveal what that computation actually costs. Together, they bracket the full picture&mdash;the algorithm and the machine it runs on.</p>
 
 <hr>
 

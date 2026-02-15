@@ -136,9 +136,7 @@ Where the speedup comes from:
 
 Both versions converge to the same loss and generate the same quality of names. The algorithm is identical. The difference is everything below the algorithm—compiled arithmetic vs. interpreter dispatch, contiguous arrays vs. heap-scattered objects, truncating a vector vs. tracing a garbage collector. None of that changes the math. All of it accounts for the 50x.
 
-And this is still just one rung on the ladder. PyTorch adds tensor ops, CUDA, operator fusion, mixed precision, distributed training—each layer building on the last, turning a toy demo into billion-parameter models.
-
-The beauty of microgpt is stripping away all those layers to reveal the core algorithm. The beauty of porting it to Rust is seeing exactly what those layers buy you.
+Karpathy's microgpt strips away frameworks to reveal what a GPT actually computes. Porting it to Rust strips away the language runtime to reveal what that computation actually costs. Together, they bracket the full picture—the algorithm and the machine it runs on.
 
 ---
 

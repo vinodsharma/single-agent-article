@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Porting Karpathy's microGPT from Python to Rust: Everything Else Is Just Efficiency</title>
+    <meta name="description" content="What happens when you take a 200-line pure-Python GPT and rewrite it in Rust? A 50x speedup and some hard lessons about ownership vs. computation graphs.">
+    <meta name="author" content="Vinod Sharma">
+    <meta property="og:title" content="Porting Karpathy's microGPT from Python to Rust: Everything Else Is Just Efficiency">
+    <meta property="og:description" content="What happens when you take a 200-line pure-Python GPT and rewrite it in Rust?">
+    <meta property="og:type" content="article">
+    <style>
+        body {
+            font-family: Georgia, 'Times New Roman', serif;
+            line-height: 1.8;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            color: #333;
+        }
+        h1 { font-size: 2.2em; margin-bottom: 0.3em; }
+        h2 { font-size: 1.6em; margin-top: 2em; border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+        h3 { font-size: 1.3em; margin-top: 1.5em; }
+        .subtitle { font-style: italic; color: #666; font-size: 1.2em; margin-bottom: 2em; }
+        hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+        ul { margin: 1em 0; }
+        li { margin: 0.5em 0; }
+        strong { color: #111; }
+        .closing { font-style: italic; margin-top: 2em; color: #666; }
+        .hero-image, .article-image {
+            width: 100%;
+            max-width: 700px;
+            height: auto;
+            margin: 1.5em 0;
+            border-radius: 4px;
+        }
+        pre {
+            background: #f6f8fa;
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        code {
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 0.9em;
+        }
+        .diagram {
+            background: #f9f9f9;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 1.5em 0;
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            white-space: pre;
+            overflow-x: auto;
+        }
+        .diagram-caption {
+            font-size: 0.85em;
+            color: #666;
+            text-align: center;
+            margin-top: -1em;
+            margin-bottom: 1.5em;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1.5em 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px 14px;
+            text-align: left;
+        }
+        th {
+            background: #f6f8fa;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background: #fafbfc;
+        }
+        .result-highlight {
+            font-size: 1.4em;
+            font-weight: bold;
+            text-align: center;
+            margin: 1.5em 0;
+            padding: 20px;
+            background: #f0f7f0;
+            border-radius: 8px;
+            color: #1a5c1a;
+        }
+    </style>
+</head>
+<body>
+
+<article>
+
+<h1>Porting Karpathy's microGPT from Python to Rust: Everything Else Is Just Efficiency</h1>
+
+<p class="subtitle">What happens when you take a 200-line pure-Python GPT and rewrite it in Rust? A deep look at tape-based autograd, ownership trade-offs, and what "efficiency" really means.</p>
+
+<hr>
+
+<p>Andrej Karpathy recently released <a href="https://gist.github.com/karpathy/8627fe009c40f57531cb18360106ce95" target="_blank">microgpt.py</a>&mdash;a complete GPT implementation in ~200 lines of pure Python with zero dependencies. No PyTorch, no NumPy. Just <code>math</code>, <code>random</code>, and <code>os</code>. The tagline:</p>
+
+<p><em>"The most atomic way to train and inference a GPT in pure, dependency-free Python. This file is the complete algorithm. Everything else is just efficiency."</em></p>
+
+<p>That tagline is an invitation. If everything else is just efficiency, what happens when you chase that efficiency as far as it goes? What does the "everything else" actually look like?</p>
+
+<p>I ported microgpt.py to Rust. Here's what I learned.</p>
+
+<hr>
+
+<h2>What microgpt.py Actually Does</h2>
+
+<p>In ~200 lines, Karpathy's code implements:</p>
+
+<ul>
+    <li><strong>Scalar autograd</strong> &mdash; A <code>Value</code> class that builds a computation graph, tracking every add, multiply, and exp so it can backpropagate gradients</li>
+    <li><strong>A GPT-2-style transformer</strong> &mdash; Token and position embeddings, multi-head attention with KV cache, RMSNorm, and a feed-forward MLP</li>
+    <li><strong>Adam optimizer</strong> &mdash; With bias correction and linear learning rate decay</li>
+    <li><strong>Training loop</strong> &mdash; 1000 steps over a character-level names dataset</li>
+    <li><strong>Inference</strong> &mdash; Temperature-controlled sampling to generate 20 new names</li>
+</ul>
+
+<p>The architecture: 16-dimensional embeddings, 4 attention heads, 1 layer, context length of 16, ~4200 parameters. Tiny, but a real transformer.</p>
+
+<hr>
+
+<h2>The Porting Challenge: Ownership vs. Computation Graphs</h2>
+
+<p>Python's <code>Value</code> class is elegant. Each value holds references to its children, forming a DAG (directed acyclic graph). Backpropagation walks this graph in reverse topological order.</p>
+
+<pre><code>class Value:
+    def __init__(self, data, children=(), local_grads=()):
+        self.data = data
+        self.grad = 0
+        self._children = children
+        self._local_grads = local_grads</code></pre>
+
+<p>This works in Python because of reference counting and garbage collection. Multiple values can point to the same child. The graph can be arbitrarily tangled.</p>
+
+<p>In Rust, this is a problem. Rust's ownership model demands that every value has exactly one owner. Shared mutable references require <code>Rc&lt;RefCell&lt;...&gt;&gt;</code>, which is verbose, slow, and fights the borrow checker at every turn.</p>
+
+<p>The solution: <strong>don't build a graph at all</strong>. Use a tape.</p>
+
+<hr>
+
+<h2>Tape-Based Autograd</h2>
+
+<p>Instead of each value holding references to its children, we store everything in flat arrays:</p>
+
+<pre><code>struct V(usize);  // just an index
+
+enum Op {
+    None,
+    Add(usize, usize),
+    Mul(usize, usize),
+    Pow(usize, f64),
+    Log(usize),
+    Exp(usize),
+    Relu(usize),
+}
+
+struct Tape {
+    values: Vec&lt;f64&gt;,
+    grads:  Vec&lt;f64&gt;,
+    ops:    Vec&lt;Op&gt;,
+    n_params: usize,
+}</code></pre>
+
+<p>Every operation appends to the tape. <code>V(42)</code> doesn't hold a value&mdash;it's an index into <code>tape.values[42]</code>. No references, no lifetimes, no <code>Rc</code>.</p>
+
+<p>The backward pass is trivial: walk the tape in reverse, accumulate gradients.</p>
+
+<pre><code>fn backward(&amp;mut self, loss: V) {
+    self.grads[loss.0] = 1.0;
+    for i in (0..self.values.len()).rev() {
+        let g = self.grads[i];
+        if g == 0.0 { continue; }
+        match self.ops[i] {
+            Op::Add(a, b) =&gt; {
+                self.grads[a] += g;
+                self.grads[b] += g;
+            }
+            Op::Mul(a, b) =&gt; {
+                self.grads[a] += self.values[b] * g;
+                self.grads[b] += self.values[a] * g;
+            }
+            // ... other ops
+        }
+    }
+}</code></pre>
+
+<p>No topological sort needed. The tape is already in topological order by construction&mdash;an operation can only reference earlier entries.</p>
+
+<p>After each training step, the tape resets: truncate back to the parameter slots, zero the gradients. Parameters live at indices <code>0..n_params</code>; everything else is ephemeral.</p>
+
+<hr>
+
+<h2>What Mapped Cleanly</h2>
+
+<p>Most of the model translated directly. The GPT forward pass&mdash;embeddings, attention, MLP&mdash;is the same algorithm, just routing through the tape instead of building <code>Value</code> objects:</p>
+
+<pre><code>// Python: x = [t + p for t, p in zip(tok_emb, pos_emb)]
+// Rust:
+let x: Vec&lt;V&gt; = (0..n_embd)
+    .map(|j| tape.add(V(tok_row[j]), V(pos_row[j])))
+    .collect();</code></pre>
+
+<p>The Adam optimizer is almost line-for-line. Softmax, RMSNorm, and linear layers are structurally identical.</p>
+
+<h3>What Needed Rethinking</h3>
+
+<ul>
+    <li><strong>Random number generation:</strong> Python has <code>random.gauss()</code>. Rust has no built-in RNG (without <code>rand</code> crate). I implemented xoshiro256** with Box-Muller transform&mdash;20 lines replacing one function call.</li>
+    <li><strong>Parameter initialization:</strong> Python uses a dictionary of nested lists. Rust uses a <code>Matrix</code> struct that stores parameter indices into the tape, with row-major access.</li>
+    <li><strong>The division operator:</strong> Python's <code>__truediv__</code> becomes <code>tape.pow(b, -1.0)</code> followed by <code>tape.mul(a, b_inv)</code>. Every convenience operator needs to be explicit.</li>
+</ul>
+
+<hr>
+
+<h2>Performance Results</h2>
+
+<p>Same dataset (32K names), same hyperparameters, same number of training steps.</p>
+
+<table>
+    <tr>
+        <th>Metric</th>
+        <th>Python</th>
+        <th>Rust</th>
+    </tr>
+    <tr>
+        <td>Training time (1000 steps)</td>
+        <td>~120s</td>
+        <td>~2.6s</td>
+    </tr>
+    <tr>
+        <td>Per-step time</td>
+        <td>~120ms</td>
+        <td>~2.6ms</td>
+    </tr>
+    <tr>
+        <td>Final loss range</td>
+        <td>~2.0&ndash;2.5</td>
+        <td>~1.9&ndash;2.4</td>
+    </tr>
+    <tr>
+        <td>Generated names</td>
+        <td>Plausible</td>
+        <td>Plausible</td>
+    </tr>
+</table>
+
+<div class="result-highlight">
+    ~50x faster
+</div>
+
+<p>The speedup comes from multiple factors working together:</p>
+
+<ul>
+    <li><strong>No interpreter overhead:</strong> Python dispatches every <code>+</code> and <code>*</code> through the object protocol. Rust compiles to native arithmetic.</li>
+    <li><strong>Cache-friendly memory layout:</strong> The tape stores all values in a contiguous <code>Vec&lt;f64&gt;</code>. Python's <code>Value</code> objects are scattered across the heap.</li>
+    <li><strong>No garbage collection:</strong> Python's GC pauses to trace the computation graph. Rust's tape just truncates.</li>
+    <li><strong>No object creation:</strong> Python allocates a new <code>Value</code> object for every operation. Rust appends an <code>f64</code> and an <code>Op</code> enum.</li>
+</ul>
+
+<hr>
+
+<h2>What "Everything Else Is Just Efficiency" Really Means</h2>
+
+<p>Karpathy's tagline is precisely correct, but the implications run deeper than they first appear.</p>
+
+<p>The Python version and the Rust version implement the <em>same algorithm</em>. The same math, the same architecture, the same optimizer. They converge to the same loss and generate the same quality of output.</p>
+
+<p>The difference is purely in the <em>representation</em> of that algorithm:</p>
+
+<ul>
+    <li>Python represents the computation graph as a network of heap-allocated objects with reference-counted pointers</li>
+    <li>Rust represents it as indices into contiguous arrays</li>
+</ul>
+
+<p>Both are correct. But one is 50x faster. That's the "everything else."</p>
+
+<p>And this is just one step on the ladder. Real frameworks like PyTorch add tensor operations (BLAS, CUDA), operator fusion, mixed precision, distributed training. Each step is "just efficiency"&mdash;but those steps are what make training billion-parameter models possible instead of a toy demo.</p>
+
+<p>The beauty of microgpt is that it strips away all those layers to reveal the core algorithm. The beauty of porting it is seeing exactly what those layers buy you.</p>
+
+<hr>
+
+<h2>Try It Yourself</h2>
+
+<p>The complete code is on GitHub:</p>
+
+<ul>
+    <li><a href="https://gist.github.com/karpathy/8627fe009c40f57531cb18360106ce95" target="_blank">Karpathy's original microgpt.py</a></li>
+    <li><a href="https://github.com/vinodsharma/social-media-update/tree/microgpt-rust-port/microgpt-rust" target="_blank">Rust port + benchmark scripts</a></li>
+</ul>
+
+<pre><code># Run the Rust version
+cd microgpt-rust/rust
+cargo run --release
+
+# Run the Python version
+cd microgpt-rust/python
+python3 microgpt.py
+
+# Run benchmarks
+cd microgpt-rust/benchmark
+./run_benchmarks.sh</code></pre>
+
+<hr>
+
+<p class="closing">The algorithm is the idea. The implementation is the trade-off. And the gap between them is where all the interesting engineering lives.</p>
+
+</article>
+
+</body>
+</html>

@@ -112,7 +112,7 @@ Adam, softmax, RMSNorm, linear layers—all structurally identical.
 
 ## Results
 
-Same dataset, same hyperparameters, same training steps.
+Same dataset, same hyperparameters, same training steps. Tested on WSL2 Ubuntu (Windows 11), Intel Xeon E3-1505M @ 2.80GHz, 32GB RAM. Rust 1.93 compiled with `-O` / `--release`, Python 3.10.
 
 | Metric | Python (199 lines) | Rust (208 lines) |
 |---|---|---|

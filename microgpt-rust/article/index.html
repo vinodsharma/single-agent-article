@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Porting Karpathy's microGPT from Python to Rust: Everything Else Is Just Efficiency</title>
-    <meta name="description" content="What happens when you take a 200-line pure-Python GPT and rewrite it in Rust? A 50x speedup and some hard lessons about ownership vs. computation graphs.">
+    <meta name="description" content="What happens when you take a 200-line pure-Python GPT and rewrite it in Rust? 208 lines, a 50x speedup, and some hard lessons about ownership vs. computation graphs.">
     <meta name="author" content="Vinod Sharma">
     <meta property="og:title" content="Porting Karpathy's microGPT from Python to Rust: Everything Else Is Just Efficiency">
     <meta property="og:description" content="What happens when you take a 200-line pure-Python GPT and rewrite it in Rust?">
@@ -101,7 +101,7 @@
 
 <h1>Porting Karpathy's microGPT from Python to Rust: Everything Else Is Just Efficiency</h1>
 
-<p class="subtitle">What happens when you take a 200-line pure-Python GPT and rewrite it in Rust? A deep look at tape-based autograd, ownership trade-offs, and what "efficiency" really means.</p>
+<p class="subtitle">What happens when you take a 200-line pure-Python GPT and rewrite it in 208 lines of Rust? A deep look at tape-based autograd, ownership trade-offs, and what "efficiency" really means.</p>
 
 <hr>
 
@@ -217,7 +217,7 @@ let x: Vec&lt;V&gt; = (0..n_embd)
 <h3>What Needed Rethinking</h3>
 
 <ul>
-    <li><strong>Random number generation:</strong> Python has <code>random.gauss()</code>. Rust has no built-in RNG (without <code>rand</code> crate). I implemented xoshiro256** with Box-Muller transform&mdash;20 lines replacing one function call.</li>
+    <li><strong>Random number generation:</strong> Python has <code>random.gauss()</code>. Rust has no built-in RNG (without the <code>rand</code> crate). I implemented a linear congruential generator with Box-Muller transform for Gaussian sampling&mdash;keeping the zero-dependency spirit.</li>
     <li><strong>Parameter initialization:</strong> Python uses a dictionary of nested lists. Rust uses a <code>Matrix</code> struct that stores parameter indices into the tape, with row-major access.</li>
     <li><strong>The division operator:</strong> Python's <code>__truediv__</code> becomes <code>tape.pow(b, -1.0)</code> followed by <code>tape.mul(a, b_inv)</code>. Every convenience operator needs to be explicit.</li>
 </ul>
@@ -237,17 +237,22 @@ let x: Vec&lt;V&gt; = (0..n_embd)
     <tr>
         <td>Training time (1000 steps)</td>
         <td>~120s</td>
-        <td>~2.6s</td>
+        <td>~2.5s</td>
     </tr>
     <tr>
         <td>Per-step time</td>
         <td>~120ms</td>
-        <td>~2.6ms</td>
+        <td>~2.5ms</td>
+    </tr>
+    <tr>
+        <td>Lines of code</td>
+        <td>199</td>
+        <td>208</td>
     </tr>
     <tr>
         <td>Final loss range</td>
         <td>~2.0&ndash;2.5</td>
-        <td>~1.9&ndash;2.4</td>
+        <td>~1.7&ndash;2.5</td>
     </tr>
     <tr>
         <td>Generated names</td>

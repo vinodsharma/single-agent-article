@@ -1,6 +1,6 @@
 # Porting Karpathy's microGPT from Python to Rust: Everything Else Is Just Efficiency
 
-*What happens when you take a 200-line pure-Python GPT and rewrite it in Rust? A deep look at tape-based autograd, ownership trade-offs, and what "efficiency" really means.*
+*What happens when you take a 200-line pure-Python GPT and rewrite it in 208 lines of Rust? A deep look at tape-based autograd, ownership trade-offs, and what "efficiency" really means.*
 
 ---
 
@@ -121,7 +121,7 @@ The Adam optimizer is almost line-for-line. Softmax, RMSNorm, and linear layers 
 
 ### What Needed Rethinking
 
-- **Random number generation:** Python has `random.gauss()`. Rust has no built-in RNG (without the `rand` crate). I implemented xoshiro256** with Box-Muller transform—20 lines replacing one function call.
+- **Random number generation:** Python has `random.gauss()`. Rust has no built-in RNG (without the `rand` crate). I implemented a linear congruential generator with Box-Muller transform for Gaussian sampling—keeping the zero-dependency spirit.
 - **Parameter initialization:** Python uses a dictionary of nested lists. Rust uses a `Matrix` struct that stores parameter indices into the tape, with row-major access.
 - **The division operator:** Python's `__truediv__` becomes `tape.pow(b, -1.0)` followed by `tape.mul(a, b_inv)`. Every convenience operator needs to be explicit.
 
@@ -133,9 +133,10 @@ Same dataset (32K names), same hyperparameters, same number of training steps.
 
 | Metric | Python | Rust |
 |---|---|---|
-| Training time (1000 steps) | ~120s | ~2.6s |
-| Per-step time | ~120ms | ~2.6ms |
-| Final loss range | ~2.0–2.5 | ~1.9–2.4 |
+| Training time (1000 steps) | ~120s | ~2.5s |
+| Per-step time | ~120ms | ~2.5ms |
+| Lines of code | 199 | 208 |
+| Final loss range | ~2.0–2.5 | ~1.7–2.5 |
 | Generated names | Plausible | Plausible |
 
 ### ~50x faster

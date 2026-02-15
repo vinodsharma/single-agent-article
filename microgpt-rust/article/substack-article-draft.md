@@ -134,7 +134,7 @@ Where the speedup comes from:
 
 ## What the Port Reveals
 
-Both versions converge to the same loss and generate the same quality of names. The algorithm is identical. The only difference is how it's laid out in memory—heap-allocated objects vs. contiguous arrays—and that accounts for a 50x speedup.
+Both versions converge to the same loss and generate the same quality of names. The algorithm is identical. The difference is everything below the algorithm—compiled arithmetic vs. interpreter dispatch, contiguous arrays vs. heap-scattered objects, truncating a vector vs. tracing a garbage collector. None of that changes the math. All of it accounts for the 50x.
 
 And this is still just one rung on the ladder. PyTorch adds tensor ops, CUDA, operator fusion, mixed precision, distributed training—each layer building on the last, turning a toy demo into billion-parameter models.
 

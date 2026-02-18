@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>microGPT in Rust: 208 Lines, 50x Faster Than Python</title>
-    <meta name="description" content="Porting Karpathy's 200-line pure-Python GPT to 208 lines of zero-dependency Rust. Tape-based autograd, ownership trade-offs, and a 50x speedup.">
+    <title>microGPT in Rust: 208 Lines, 400x Faster Than Python</title>
+    <meta name="description" content="Porting Karpathy's 200-line pure-Python GPT to 208 lines of zero-dependency Rust. Tape-based autograd, ownership trade-offs, and a 400x speedup.">
     <meta name="author" content="Vinod Sharma">
-    <meta property="og:title" content="microGPT in Rust: 208 Lines, 50x Faster Than Python">
-    <meta property="og:description" content="Porting Karpathy's 200-line pure-Python GPT to 208 lines of zero-dependency Rust. A 50x speedup and what 'everything else is just efficiency' really means.">
+    <meta property="og:title" content="microGPT in Rust: 208 Lines, 400x Faster Than Python">
+    <meta property="og:description" content="Porting Karpathy's 200-line pure-Python GPT to 208 lines of zero-dependency Rust. A 400x speedup and what 'everything else is just efficiency' really means.">
     <meta property="og:type" content="article">
     <style>
         body {
@@ -73,9 +73,9 @@
 
 <article>
 
-<h1>microGPT in Rust: 208 Lines, 50x Faster Than Python</h1>
+<h1>microGPT in Rust: 208 Lines, 400x Faster Than Python</h1>
 
-<p class="subtitle">Porting Karpathy's microgpt.py to zero-dependency Rust&mdash;same algorithm, comparable line count, 50x the speed.</p>
+<p class="subtitle">Porting Karpathy's microgpt.py to zero-dependency Rust&mdash;same algorithm, comparable line count, 400x the speed.</p>
 
 <hr>
 
@@ -83,7 +83,7 @@
 
 <p><em>"This file is the complete algorithm. Everything else is just efficiency."</em></p>
 
-<p>So I chased the efficiency. I ported it to Rust: <a href="https://gist.github.com/vinodsharma/64f9460d7c9f2ef4dbfe45591c7a6a6e" target="_blank">microgpt-rust.rs</a>&mdash;208 lines, zero dependencies, 50x faster. Here's what that took.</p>
+<p>So I chased the efficiency. I ported it to Rust: <a href="https://gist.github.com/vinodsharma/64f9460d7c9f2ef4dbfe45591c7a6a6e" target="_blank">microgpt-rust.rs</a>&mdash;208 lines, zero dependencies, 400x faster. Here's what that took.</p>
 
 <hr>
 
@@ -183,7 +183,7 @@ let x: Vec&lt;V&gt; = (0..n_embd)
 
 <h2>Results</h2>
 
-<p>Same dataset, same hyperparameters, same training steps. Tested on WSL2 Ubuntu (Windows 11), Intel Xeon E3-1505M @ 2.80GHz, 32GB RAM. Rust 1.93 compiled with <code>-O</code> / <code>--release</code>, Python 3.10.</p>
+<p>Same dataset, same hyperparameters, same training steps. Benchmarked on Google Colab (10 runs each): Intel Xeon @ 2.20GHz, 12GB RAM, Ubuntu 22.04. Python 3.12, Rust 1.93 compiled with <code>-O</code>.</p>
 
 <table>
     <tr>
@@ -192,14 +192,14 @@ let x: Vec&lt;V&gt; = (0..n_embd)
         <th>Rust (208 lines)</th>
     </tr>
     <tr>
-        <td>Training time (1000 steps)</td>
-        <td>~120s</td>
-        <td>~2.5s</td>
+        <td>Training time (median)</td>
+        <td>283s</td>
+        <td>0.68s</td>
     </tr>
     <tr>
         <td>Per-step time</td>
-        <td>~120ms</td>
-        <td>~2.5ms</td>
+        <td>~283ms</td>
+        <td>~0.68ms</td>
     </tr>
     <tr>
         <td>Final loss range</td>
@@ -214,7 +214,7 @@ let x: Vec&lt;V&gt; = (0..n_embd)
 </table>
 
 <div class="result-highlight">
-    ~50x faster &mdash; comparable line count
+    ~400x faster &mdash; comparable line count
 </div>
 
 <p>Where the speedup comes from:</p>
@@ -230,7 +230,7 @@ let x: Vec&lt;V&gt; = (0..n_embd)
 
 <h2>What the Port Reveals</h2>
 
-<p>Both versions converge to the same loss and generate the same quality of names. The algorithm is identical. The difference is everything below the algorithm&mdash;compiled arithmetic vs. interpreter dispatch, contiguous arrays vs. heap-scattered objects, truncating a vector vs. tracing a garbage collector. None of that changes the math. All of it accounts for the 50x.</p>
+<p>Both versions converge to the same loss and generate the same quality of names. The algorithm is identical. The difference is everything below the algorithm&mdash;compiled arithmetic vs. interpreter dispatch, contiguous arrays vs. heap-scattered objects, truncating a vector vs. tracing a garbage collector. None of that changes the math. All of it accounts for the 400x.</p>
 
 <p>Karpathy's microgpt strips away frameworks to reveal what a GPT actually computes. Porting it to Rust strips away the language runtime to reveal what that computation actually costs. Together, they bracket the full picture&mdash;the algorithm and the machine it runs on.</p>
 
@@ -240,7 +240,7 @@ let x: Vec&lt;V&gt; = (0..n_embd)
 
 <ul>
     <li><a href="https://gist.github.com/karpathy/8627fe009c40f57531cb18360106ce95" target="_blank">microgpt.py</a> &mdash; Karpathy's original (Python, 199 lines)</li>
-    <li><a href="https://gist.github.com/vinodsharma/64f9460d7c9f2ef4dbfe45591c7a6a6e" target="_blank">microgpt-rust.rs</a> &mdash; Rust port (208 lines, ~50x faster)</li>
+    <li><a href="https://gist.github.com/vinodsharma/64f9460d7c9f2ef4dbfe45591c7a6a6e" target="_blank">microgpt-rust.rs</a> &mdash; Rust port (208 lines, ~400x faster)</li>
 </ul>
 
 <pre><code># Rust

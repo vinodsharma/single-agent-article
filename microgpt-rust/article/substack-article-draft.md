@@ -1,6 +1,6 @@
-# microGPT in Rust: 208 Lines, 50x Faster Than Python
+# microGPT in Rust: 208 Lines, 400x Faster Than Python
 
-*Porting Karpathy's microgpt.py to zero-dependency Rust—same algorithm, comparable line count, 50x the speed.*
+*Porting Karpathy's microgpt.py to zero-dependency Rust—same algorithm, comparable line count, 400x the speed.*
 
 ---
 
@@ -8,7 +8,7 @@ Andrej Karpathy released [microgpt.py](https://gist.github.com/karpathy/8627fe00
 
 > *"This file is the complete algorithm. Everything else is just efficiency."*
 
-So I chased the efficiency. I ported it to Rust: [microgpt-rust.rs](https://gist.github.com/vinodsharma/64f9460d7c9f2ef4dbfe45591c7a6a6e)—208 lines, zero dependencies, 50x faster. Here's what that took.
+So I chased the efficiency. I ported it to Rust: [microgpt-rust.rs](https://gist.github.com/vinodsharma/64f9460d7c9f2ef4dbfe45591c7a6a6e)—208 lines, zero dependencies, 400x faster. Here's what that took.
 
 ---
 
@@ -112,16 +112,16 @@ Adam, softmax, RMSNorm, linear layers—all structurally identical.
 
 ## Results
 
-Same dataset, same hyperparameters, same training steps. Tested on WSL2 Ubuntu (Windows 11), Intel Xeon E3-1505M @ 2.80GHz, 32GB RAM. Rust 1.93 compiled with `-O` / `--release`, Python 3.10.
+Same dataset, same hyperparameters, same training steps. Benchmarked on Google Colab (10 runs each): Intel Xeon @ 2.20GHz, 12GB RAM, Ubuntu 22.04. Python 3.12, Rust 1.93 compiled with `-O`.
 
 | Metric | Python (199 lines) | Rust (208 lines) |
 |---|---|---|
-| Training time (1000 steps) | ~120s | ~2.5s |
-| Per-step time | ~120ms | ~2.5ms |
+| Training time (median) | 283s | 0.68s |
+| Per-step time | ~283ms | ~0.68ms |
 | Final loss range | ~2.0–2.5 | ~1.7–2.5 |
 | Generated names | Plausible | Plausible |
 
-### ~50x faster — comparable line count
+### ~400x faster — comparable line count
 
 Where the speedup comes from:
 
@@ -134,7 +134,7 @@ Where the speedup comes from:
 
 ## What the Port Reveals
 
-Both versions converge to the same loss and generate the same quality of names. The algorithm is identical. The difference is everything below the algorithm—compiled arithmetic vs. interpreter dispatch, contiguous arrays vs. heap-scattered objects, truncating a vector vs. tracing a garbage collector. None of that changes the math. All of it accounts for the 50x.
+Both versions converge to the same loss and generate the same quality of names. The algorithm is identical. The difference is everything below the algorithm—compiled arithmetic vs. interpreter dispatch, contiguous arrays vs. heap-scattered objects, truncating a vector vs. tracing a garbage collector. None of that changes the math. All of it accounts for the 400x.
 
 Karpathy's microgpt strips away frameworks to reveal what a GPT actually computes. Porting it to Rust strips away the language runtime to reveal what that computation actually costs. Together, they bracket the full picture—the algorithm and the machine it runs on.
 
@@ -143,7 +143,7 @@ Karpathy's microgpt strips away frameworks to reveal what a GPT actually compute
 ## Try It
 
 - [microgpt.py](https://gist.github.com/karpathy/8627fe009c40f57531cb18360106ce95) — Karpathy's original (Python, 199 lines)
-- [microgpt-rust.rs](https://gist.github.com/vinodsharma/64f9460d7c9f2ef4dbfe45591c7a6a6e) — Rust port (208 lines, ~50x faster)
+- [microgpt-rust.rs](https://gist.github.com/vinodsharma/64f9460d7c9f2ef4dbfe45591c7a6a6e) — Rust port (208 lines, ~400x faster)
 
 ```bash
 # Rust

@@ -2,6 +2,8 @@
 
 *Porting Karpathy's microgpt.py to zero-dependency Rust—same algorithm, comparable line count, 400x the speed.*
 
+![Complete microgpt-rust.rs source code — 208 lines of Rust implementing a GPT from scratch](microgpt-rust-code.png)
+
 ---
 
 Andrej Karpathy released [microgpt.py](https://gist.github.com/karpathy/8627fe009c40f57531cb18360106ce95)—a complete GPT in ~200 lines of pure Python. No PyTorch, no NumPy. Just `math`, `random`, and `os`. The tagline:
